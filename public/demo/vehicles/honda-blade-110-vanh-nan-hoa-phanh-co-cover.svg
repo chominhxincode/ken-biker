@@ -1,0 +1,17 @@
+<svg width="600" height="400" viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad-honda-blade-110-vanh-nan-hoa-phanh-co-cover" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1f2937;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#111827;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#grad-honda-blade-110-vanh-nan-hoa-phanh-co-cover)" />
+  <circle cx="200" cy="240" r="45" stroke="#ef4444" stroke-width="4" fill="none" opacity="0.6"/>
+  <circle cx="400" cy="240" r="45" stroke="#ef4444" stroke-width="4" fill="none" opacity="0.6"/>
+  <line x1="200" y1="240" x2="280" y2="180" stroke="#ef4444" stroke-width="5" opacity="0.6"/>
+  <line x1="280" y1="180" x2="380" y2="180" stroke="#ef4444" stroke-width="5" opacity="0.6"/>
+  <line x1="380" y1="180" x2="400" y2="240" stroke="#ef4444" stroke-width="5" opacity="0.6"/>
+  <text x="50%" y="38%" dominant-baseline="middle" text-anchor="middle" font-family="system-ui, sans-serif" font-weight="extrabold" fill="#ffffff" font-size="24px">HONDA BLADE 110 VÀNH NAN HOA PHANH CƠ</text>
+  <text x="50%" y="52%" dominant-baseline="middle" text-anchor="middle" font-family="system-ui, sans-serif" font-weight="medium" fill="#94a3b8" font-size="14px">Màu sắc: Đen Đỏ | Giá: 19.500.000đ</text>
+  <text x="50%" y="82%" dominant-baseline="middle" text-anchor="middle" font-family="system-ui, sans-serif" font-weight="bold" fill="#ef4444" font-size="12px">KEN MOTOR SHOWROOM</text>
+</svg>
