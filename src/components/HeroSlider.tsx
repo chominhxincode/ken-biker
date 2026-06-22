@@ -21,13 +21,13 @@ interface HeroSlideItemProps {
 }
 
 function HeroSlideItem({ slide, current, idx, settings }: HeroSlideItemProps) {
-  const [desktopSrc, setDesktopSrc] = useState(safeImageUrl(slide.image_desktop_url, 'banner'));
-  const [mobileSrc, setMobileSrc] = useState(safeImageUrl(slide.image_mobile_url || slide.image_desktop_url, 'banner'));
+  const [desktopSrc, setDesktopSrc] = useState(safeImageUrl(slide.image_desktop_url || slide.image_url, 'banner'));
+  const [mobileSrc, setMobileSrc] = useState(safeImageUrl(slide.image_mobile_url || slide.image_desktop_url || slide.image_url, 'banner'));
 
   useEffect(() => {
-    setDesktopSrc(safeImageUrl(slide.image_desktop_url, 'banner'));
-    setMobileSrc(safeImageUrl(slide.image_mobile_url || slide.image_desktop_url, 'banner'));
-  }, [slide.image_desktop_url, slide.image_mobile_url]);
+    setDesktopSrc(safeImageUrl(slide.image_desktop_url || slide.image_url, 'banner'));
+    setMobileSrc(safeImageUrl(slide.image_mobile_url || slide.image_desktop_url || slide.image_url, 'banner'));
+  }, [slide.image_desktop_url, slide.image_mobile_url, slide.image_url]);
 
   return (
     <div

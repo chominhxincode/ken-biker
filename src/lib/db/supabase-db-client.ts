@@ -384,7 +384,14 @@ export const supabaseDbClient = {
     if (!hasSupabaseConfig()) return localStorageClient.getSliders(filters);
     try {
       const { data, error } = await supabase!.from('sliders').select('*');
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching sliders from Supabase. Code:", error.code, "Message:", error.message, "Details:", error.details);
+        throw error;
+      }
+      
+      if (!data || data.length === 0) {
+        console.warn("Chưa có slider trong database");
+      }
       
       let sliders: any[] = [...(data || [])];
       
