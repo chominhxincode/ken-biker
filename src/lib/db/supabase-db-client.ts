@@ -1,4 +1,4 @@
-import { supabase } from './supabase-client';
+import { supabase, hasSupabaseConfig } from './supabase-client';
 import { localStorageClient } from './local-storage-client';
 import * as defaults from './seed-defaults';
 import {
@@ -9,24 +9,21 @@ import {
 export const supabaseDbClient = {
   // --- BRANDS ---
   async getBrands(): Promise<Brand[]> {
+    if (!hasSupabaseConfig()) return localStorageClient.getBrands();
     try {
-      if (!supabase) return localStorageClient.getBrands();
-      const { data, error } = await supabase.from('brands').select('*').order('name');
-      if (error) {
-        console.error('Error fetching brands from Supabase, falling back to local storage:', error);
-        return localStorageClient.getBrands();
-      }
+      const { data, error } = await supabase!.from('brands').select('*').order('name');
+      if (error) throw error;
       return data || [];
     } catch (e) {
-      console.error('Exception in getBrands from Supabase, falling back to local storage:', e);
-      return localStorageClient.getBrands();
+      console.error('Error fetching brands from Supabase:', e);
+      throw e;
     }
   },
 
   async saveBrand(brand: Omit<Brand, 'id'> & { id?: string }): Promise<Brand> {
+    if (!hasSupabaseConfig()) return localStorageClient.saveBrand(brand);
     try {
-      if (!supabase) return localStorageClient.saveBrand(brand);
-      const { data, error } = await supabase
+      const { data, error } = await supabase!
         .from('brands')
         .upsert({
           id: brand.id || undefined,
@@ -38,52 +35,43 @@ export const supabaseDbClient = {
         })
         .select()
         .single();
-      if (error) {
-        console.error('Error saving brand to Supabase, falling back to local storage:', error);
-        return localStorageClient.saveBrand(brand);
-      }
+      if (error) throw error;
       return data;
     } catch (e) {
-      console.error('Exception in saveBrand on Supabase, falling back to local storage:', e);
-      return localStorageClient.saveBrand(brand);
+      console.error('Error saving brand to Supabase:', e);
+      throw e;
     }
   },
 
   async deleteBrand(id: string): Promise<boolean> {
+    if (!hasSupabaseConfig()) return localStorageClient.deleteBrand(id);
     try {
-      if (!supabase) return localStorageClient.deleteBrand(id);
-      const { error } = await supabase.from('brands').delete().eq('id', id);
-      if (error) {
-        console.error('Error deleting brand from Supabase, falling back to local storage:', error);
-        return localStorageClient.deleteBrand(id);
-      }
+      const { error } = await supabase!.from('brands').delete().eq('id', id);
+      if (error) throw error;
       return true;
     } catch (e) {
-      console.error('Exception in deleteBrand on Supabase, falling back to local storage:', e);
-      return localStorageClient.deleteBrand(id);
+      console.error('Error deleting brand from Supabase:', e);
+      throw e;
     }
   },
 
   // --- CATEGORIES ---
   async getCategories(): Promise<Category[]> {
+    if (!hasSupabaseConfig()) return localStorageClient.getCategories();
     try {
-      if (!supabase) return localStorageClient.getCategories();
-      const { data, error } = await supabase.from('categories').select('*').order('sort_order', { ascending: true });
-      if (error) {
-        console.error('Error fetching categories from Supabase, falling back to local storage:', error);
-        return localStorageClient.getCategories();
-      }
+      const { data, error } = await supabase!.from('categories').select('*').order('sort_order', { ascending: true });
+      if (error) throw error;
       return data || [];
     } catch (e) {
-      console.error('Exception in getCategories from Supabase, falling back to local storage:', e);
-      return localStorageClient.getCategories();
+      console.error('Error fetching categories from Supabase:', e);
+      throw e;
     }
   },
 
   async saveCategory(category: Omit<Category, 'id'> & { id?: string }): Promise<Category> {
+    if (!hasSupabaseConfig()) return localStorageClient.saveCategory(category);
     try {
-      if (!supabase) return localStorageClient.saveCategory(category);
-      const { data, error } = await supabase
+      const { data, error } = await supabase!
         .from('categories')
         .upsert({
           id: category.id || undefined,
@@ -96,29 +84,23 @@ export const supabaseDbClient = {
         })
         .select()
         .single();
-      if (error) {
-        console.error('Error saving category to Supabase, falling back to local storage:', error);
-        return localStorageClient.saveCategory(category);
-      }
+      if (error) throw error;
       return data;
     } catch (e) {
-      console.error('Exception in saveCategory on Supabase, falling back to local storage:', e);
-      return localStorageClient.saveCategory(category);
+      console.error('Error saving category to Supabase:', e);
+      throw e;
     }
   },
 
   async deleteCategory(id: string): Promise<boolean> {
+    if (!hasSupabaseConfig()) return localStorageClient.deleteCategory(id);
     try {
-      if (!supabase) return localStorageClient.deleteCategory(id);
-      const { error } = await supabase.from('categories').delete().eq('id', id);
-      if (error) {
-        console.error('Error deleting category from Supabase, falling back to local storage:', error);
-        return localStorageClient.deleteCategory(id);
-      }
+      const { error } = await supabase!.from('categories').delete().eq('id', id);
+      if (error) throw error;
       return true;
     } catch (e) {
-      console.error('Exception in deleteCategory on Supabase, falling back to local storage:', e);
-      return localStorageClient.deleteCategory(id);
+      console.error('Error deleting category from Supabase:', e);
+      throw e;
     }
   },
 
@@ -137,14 +119,13 @@ export const supabaseDbClient = {
     page?: number;
     limit?: number;
   }): Promise<{ data: Vehicle[]; total: number }> {
+    if (!hasSupabaseConfig()) return localStorageClient.getVehicles(filters);
     try {
-      if (!supabase) return localStorageClient.getVehicles(filters);
-      
-      let query = supabase.from('vehicles').select('*', { count: 'exact' });
+      let query = supabase!.from('vehicles').select('*', { count: 'exact' });
 
       // Joins/Lookups for slug filters
       if (filters?.brandSlug) {
-        const { data: brand, error: bErr } = await supabase.from('brands').select('id').eq('slug', filters.brandSlug).single();
+        const { data: brand, error: bErr } = await supabase!.from('brands').select('id').eq('slug', filters.brandSlug).single();
         if (bErr || !brand) {
           console.warn('Brand slug query returned error or not found:', bErr);
         } else {
@@ -152,7 +133,7 @@ export const supabaseDbClient = {
         }
       }
       if (filters?.categorySlug) {
-        const { data: cat, error: cErr } = await supabase.from('categories').select('id').eq('slug', filters.categorySlug).single();
+        const { data: cat, error: cErr } = await supabase!.from('categories').select('id').eq('slug', filters.categorySlug).single();
         if (cErr || !cat) {
           console.warn('Category slug query returned error or not found:', cErr);
         } else {
@@ -200,45 +181,40 @@ export const supabaseDbClient = {
       query = query.range(fromIndex, toIndex);
 
       const { data, count, error } = await query;
-      if (error) {
-        console.error('Error fetching vehicles from Supabase, falling back to local storage:', error);
-        return localStorageClient.getVehicles(filters);
-      }
+      if (error) throw error;
       return { data: data || [], total: count || 0 };
     } catch (e) {
-      console.error('Exception in getVehicles from Supabase, falling back to local storage:', e);
-      return localStorageClient.getVehicles(filters);
+      console.error('Error fetching vehicles from Supabase:', e);
+      throw e;
     }
   },
 
   async getVehicleBySlug(slug: string): Promise<{ vehicle: Vehicle; images: VehicleImage[] } | null> {
+    if (!hasSupabaseConfig()) return localStorageClient.getVehicleBySlug(slug);
     try {
-      if (!supabase) return localStorageClient.getVehicleBySlug(slug);
-      
-      const { data: vehicle, error: vError } = await supabase
+      const { data: vehicle, error: vError } = await supabase!
         .from('vehicles')
         .select('*')
         .eq('slug', slug)
         .single();
 
-      if (vError || !vehicle) {
-        console.error('Error fetching vehicle by slug from Supabase, falling back to local storage:', vError);
-        return localStorageClient.getVehicleBySlug(slug);
-      }
+      if (vError) throw vError;
 
-      const { data: images, error: iError } = await supabase
+      const { data: images, error: iError } = await supabase!
         .from('vehicle_images')
         .select('*')
         .eq('vehicle_id', vehicle.id)
         .order('sort_order', { ascending: true });
+
+      if (iError) throw iError;
 
       return {
         vehicle,
         images: images || []
       };
     } catch (e) {
-      console.error('Exception in getVehicleBySlug from Supabase, falling back to local storage:', e);
-      return localStorageClient.getVehicleBySlug(slug);
+      console.error('Error fetching vehicle by slug from Supabase:', e);
+      throw e;
     }
   },
 
@@ -246,10 +222,9 @@ export const supabaseDbClient = {
     vehicle: Omit<Vehicle, 'id'> & { id?: string },
     images: { id?: string; image_url: string; sort_order: number; is_cover: boolean }[]
   ): Promise<Vehicle> {
+    if (!hasSupabaseConfig()) return localStorageClient.saveVehicle(vehicle, images);
     try {
-      if (!supabase) return localStorageClient.saveVehicle(vehicle, images);
-      
-      const { data, error } = await supabase
+      const { data, error } = await supabase!
         .from('vehicles')
         .upsert({
           id: vehicle.id || undefined,
@@ -277,30 +252,28 @@ export const supabaseDbClient = {
           is_sold: Boolean(vehicle.is_sold),
           seo_title: vehicle.seo_title,
           seo_description: vehicle.seo_description,
-          og_image: images.find(img => img.is_cover)?.image_url || images[0]?.image_url || '',
+          og_image: vehicle.og_image || images.find(img => img.is_cover)?.image_url || images[0]?.image_url || '',
           is_visible: Boolean(vehicle.is_visible !== false)
         })
         .select()
         .single();
 
-      if (error) {
-        console.error('Error saving vehicle to Supabase, falling back to local storage:', error);
-        return localStorageClient.saveVehicle(vehicle, images);
-      }
-
+      if (error) throw error;
       const vId = data.id;
 
       // Delete old images not in the new set
       const savedImgIds = images.filter(img => img.id).map(img => img.id);
       if (savedImgIds.length > 0) {
-        await supabase.from('vehicle_images').delete().eq('vehicle_id', vId).not('id', 'in', `(${savedImgIds.join(',')})`);
+        const { error: delErr } = await supabase!.from('vehicle_images').delete().eq('vehicle_id', vId).not('id', 'in', `(${savedImgIds.join(',')})`);
+        if (delErr) throw delErr;
       } else {
-        await supabase.from('vehicle_images').delete().eq('vehicle_id', vId);
+        const { error: delErr } = await supabase!.from('vehicle_images').delete().eq('vehicle_id', vId);
+        if (delErr) throw delErr;
       }
 
       // Upsert images
       if (images.length > 0) {
-        const { error: imgError } = await supabase.from('vehicle_images').upsert(
+        const { error: imgError } = await supabase!.from('vehicle_images').upsert(
           images.map((img, idx) => ({
             id: img.id || undefined,
             vehicle_id: vId,
@@ -309,38 +282,33 @@ export const supabaseDbClient = {
             is_cover: Boolean(img.is_cover)
           }))
         );
-        if (imgError) {
-          console.error('Error upserting vehicle images on Supabase:', imgError);
-        }
+        if (imgError) throw imgError;
       }
 
       return data;
     } catch (e) {
-      console.error('Exception in saveVehicle on Supabase, falling back to local storage:', e);
-      return localStorageClient.saveVehicle(vehicle, images);
+      console.error('Error saving vehicle on Supabase:', e);
+      throw e;
     }
   },
 
   async deleteVehicle(id: string): Promise<boolean> {
+    if (!hasSupabaseConfig()) return localStorageClient.deleteVehicle(id);
     try {
-      if (!supabase) return localStorageClient.deleteVehicle(id);
-      const { error } = await supabase.from('vehicles').delete().eq('id', id);
-      if (error) {
-        console.error('Error deleting vehicle from Supabase, falling back to local storage:', error);
-        return localStorageClient.deleteVehicle(id);
-      }
+      const { error } = await supabase!.from('vehicles').delete().eq('id', id);
+      if (error) throw error;
       return true;
     } catch (e) {
-      console.error('Exception in deleteVehicle on Supabase, falling back to local storage:', e);
-      return localStorageClient.deleteVehicle(id);
+      console.error('Error deleting vehicle from Supabase:', e);
+      throw e;
     }
   },
 
   // --- BLOG POSTS ---
   async getPosts(filters?: { isVisibleOnly?: boolean; isFeaturedOnly?: boolean }): Promise<Post[]> {
+    if (!hasSupabaseConfig()) return localStorageClient.getPosts(filters);
     try {
-      if (!supabase) return localStorageClient.getPosts(filters);
-      let query = supabase.from('posts').select('*');
+      let query = supabase!.from('posts').select('*');
       if (filters?.isVisibleOnly) {
         query = query.eq('is_visible', true);
       }
@@ -348,36 +316,30 @@ export const supabaseDbClient = {
         query = query.eq('is_featured', true);
       }
       const { data, error } = await query.order('created_at', { ascending: false });
-      if (error) {
-        console.error('Error fetching blog posts from Supabase, falling back to local storage:', error);
-        return localStorageClient.getPosts(filters);
-      }
+      if (error) throw error;
       return data || [];
     } catch (e) {
-      console.error('Exception in getPosts from Supabase, falling back to local storage:', e);
-      return localStorageClient.getPosts(filters);
+      console.error('Error fetching blog posts from Supabase:', e);
+      throw e;
     }
   },
 
   async getPostBySlug(slug: string): Promise<Post | null> {
+    if (!hasSupabaseConfig()) return localStorageClient.getPostBySlug(slug);
     try {
-      if (!supabase) return localStorageClient.getPostBySlug(slug);
-      const { data, error } = await supabase.from('posts').select('*').eq('slug', slug).single();
-      if (error) {
-        console.error('Error fetching post by slug from Supabase, falling back to local storage:', error);
-        return localStorageClient.getPostBySlug(slug);
-      }
+      const { data, error } = await supabase!.from('posts').select('*').eq('slug', slug).single();
+      if (error) throw error;
       return data;
     } catch (e) {
-      console.error('Exception in getPostBySlug from Supabase, falling back to local storage:', e);
-      return localStorageClient.getPostBySlug(slug);
+      console.error('Error fetching post by slug from Supabase:', e);
+      throw e;
     }
   },
 
   async savePost(post: Omit<Post, 'id'> & { id?: string }): Promise<Post> {
+    if (!hasSupabaseConfig()) return localStorageClient.savePost(post);
     try {
-      if (!supabase) return localStorageClient.savePost(post);
-      const { data, error } = await supabase
+      const { data, error } = await supabase!
         .from('posts')
         .upsert({
           id: post.id || undefined,
@@ -397,47 +359,32 @@ export const supabaseDbClient = {
         })
         .select()
         .single();
-      if (error) {
-        console.error('Error saving post to Supabase, falling back to local storage:', error);
-        return localStorageClient.savePost(post);
-      }
+      if (error) throw error;
       return data;
     } catch (e) {
-      console.error('Exception in savePost on Supabase, falling back to local storage:', e);
-      return localStorageClient.savePost(post);
+      console.error('Error saving post to Supabase:', e);
+      throw e;
     }
   },
 
   async deletePost(id: string): Promise<boolean> {
+    if (!hasSupabaseConfig()) return localStorageClient.deletePost(id);
     try {
-      if (!supabase) return localStorageClient.deletePost(id);
-      const { error } = await supabase.from('posts').delete().eq('id', id);
-      if (error) {
-        console.error('Error deleting post from Supabase, falling back to local storage:', error);
-        return localStorageClient.deletePost(id);
-      }
+      const { error } = await supabase!.from('posts').delete().eq('id', id);
+      if (error) throw error;
       return true;
     } catch (e) {
-      console.error('Exception in deletePost on Supabase, falling back to local storage:', e);
-      return localStorageClient.deletePost(id);
+      console.error('Error deleting post from Supabase:', e);
+      throw e;
     }
   },
 
   // --- SLIDERS ---
   async getSliders(filters?: { isVisibleOnly?: boolean }): Promise<Slider[]> {
+    if (!hasSupabaseConfig()) return localStorageClient.getSliders(filters);
     try {
-      if (!supabase) return localStorageClient.getSliders(filters);
-      // Clean select('*') to make it resilient to schema differences (e.g. order_index vs sort_order)
-      const { data, error } = await supabase.from('sliders').select('*');
-      if (error) {
-        console.error("getSliders Supabase error", {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        });
-        return localStorageClient.getSliders(filters);
-      }
+      const { data, error } = await supabase!.from('sliders').select('*');
+      if (error) throw error;
       
       let sliders: any[] = [...(data || [])];
       
@@ -460,15 +407,15 @@ export const supabaseDbClient = {
       
       return sliders as Slider[];
     } catch (e) {
-      console.warn('Exception in getSliders from Supabase, falling back to local storage:', e);
-      return localStorageClient.getSliders(filters);
+      console.error('Error fetching sliders from Supabase:', e);
+      throw e;
     }
   },
 
   async saveSlider(slider: Omit<Slider, 'id'> & { id?: string }): Promise<Slider> {
+    if (!hasSupabaseConfig()) return localStorageClient.saveSlider(slider);
     try {
-      if (!supabase) return localStorageClient.saveSlider(slider);
-      const { data, error } = await supabase
+      const { data, error } = await supabase!
         .from('sliders')
         .upsert({
           id: slider.id || undefined,
@@ -484,52 +431,43 @@ export const supabaseDbClient = {
         })
         .select()
         .single();
-      if (error) {
-        console.error('Error saving slider to Supabase, falling back to local storage:', error);
-        return localStorageClient.saveSlider(slider);
-      }
+      if (error) throw error;
       return data;
     } catch (e) {
-      console.error('Exception in saveSlider on Supabase, falling back to local storage:', e);
-      return localStorageClient.saveSlider(slider);
+      console.error('Error saving slider on Supabase:', e);
+      throw e;
     }
   },
 
   async deleteSlider(id: string): Promise<boolean> {
+    if (!hasSupabaseConfig()) return localStorageClient.deleteSlider(id);
     try {
-      if (!supabase) return localStorageClient.deleteSlider(id);
-      const { error } = await supabase.from('sliders').delete().eq('id', id);
-      if (error) {
-        console.error('Error deleting slider from Supabase, falling back to local storage:', error);
-        return localStorageClient.deleteSlider(id);
-      }
+      const { error } = await supabase!.from('sliders').delete().eq('id', id);
+      if (error) throw error;
       return true;
     } catch (e) {
-      console.error('Exception in deleteSlider on Supabase, falling back to local storage:', e);
-      return localStorageClient.deleteSlider(id);
+      console.error('Error deleting slider from Supabase:', e);
+      throw e;
     }
   },
 
   // --- FAQS ---
   async getFAQs(): Promise<FAQ[]> {
+    if (!hasSupabaseConfig()) return localStorageClient.getFAQs();
     try {
-      if (!supabase) return localStorageClient.getFAQs();
-      const { data, error } = await supabase.from('faqs').select('*').order('sort_order', { ascending: true });
-      if (error) {
-        console.error('Error fetching FAQs from Supabase, falling back to local storage:', error);
-        return localStorageClient.getFAQs();
-      }
+      const { data, error } = await supabase!.from('faqs').select('*').order('sort_order', { ascending: true });
+      if (error) throw error;
       return data || [];
     } catch (e) {
-      console.error('Exception in getFAQs from Supabase, falling back to local storage:', e);
-      return localStorageClient.getFAQs();
+      console.error('Error fetching FAQs from Supabase:', e);
+      throw e;
     }
   },
 
   async saveFAQ(faq: Omit<FAQ, 'id'> & { id?: string }): Promise<FAQ> {
+    if (!hasSupabaseConfig()) return localStorageClient.saveFAQ(faq);
     try {
-      if (!supabase) return localStorageClient.saveFAQ(faq);
-      const { data, error } = await supabase
+      const { data, error } = await supabase!
         .from('faqs')
         .upsert({
           id: faq.id || undefined,
@@ -539,93 +477,79 @@ export const supabaseDbClient = {
         })
         .select()
         .single();
-      if (error) {
-        console.error('Error saving FAQ to Supabase, falling back to local storage:', error);
-        return localStorageClient.saveFAQ(faq);
-      }
+      if (error) throw error;
       return data;
     } catch (e) {
-      console.error('Exception in saveFAQ on Supabase, falling back to local storage:', e);
-      return localStorageClient.saveFAQ(faq);
+      console.error('Error saving FAQ on Supabase:', e);
+      throw e;
     }
   },
 
   async deleteFAQ(id: string): Promise<boolean> {
+    if (!hasSupabaseConfig()) return localStorageClient.deleteFAQ(id);
     try {
-      if (!supabase) return localStorageClient.deleteFAQ(id);
-      const { error } = await supabase.from('faqs').delete().eq('id', id);
-      if (error) {
-        console.error('Error deleting FAQ from Supabase, falling back to local storage:', error);
-        return localStorageClient.deleteFAQ(id);
-      }
+      const { error } = await supabase!.from('faqs').delete().eq('id', id);
+      if (error) throw error;
       return true;
     } catch (e) {
-      console.error('Exception in deleteFAQ on Supabase, falling back to local storage:', e);
-      return localStorageClient.deleteFAQ(id);
+      console.error('Error deleting FAQ from Supabase:', e);
+      throw e;
     }
   },
 
   // --- TESTIMONIALS ---
   async getTestimonials(): Promise<Testimonial[]> {
+    if (!hasSupabaseConfig()) return localStorageClient.getTestimonials();
     try {
-      if (!supabase) return localStorageClient.getTestimonials();
-      const { data, error } = await supabase.from('testimonials').select('*').order('sort_order', { ascending: true });
-      if (error) {
-        console.error('Error fetching testimonials from Supabase, falling back to local storage:', error);
-        return localStorageClient.getTestimonials();
-      }
+      const { data, error } = await supabase!.from('testimonials').select('*').order('sort_order', { ascending: true });
+      if (error) throw error;
       return data || [];
     } catch (e) {
-      console.error('Exception in getTestimonials from Supabase, falling back to local storage:', e);
-      return localStorageClient.getTestimonials();
+      console.error('Error fetching testimonials from Supabase:', e);
+      throw e;
     }
   },
 
   // --- SETTINGS ---
   async getSettings(): Promise<GeneralSettings> {
+    if (!hasSupabaseConfig()) return localStorageClient.getSettings();
     try {
-      if (!supabase) return localStorageClient.getSettings();
-      const { data, error } = await supabase.from('settings').select('*').eq('key', 'general_settings').single();
-      if (error || !data || !data.value) {
-        console.warn('Error or settings not found in Supabase, falling back to local storage:', error);
-        return localStorageClient.getSettings();
-      }
-      // Merge with defaults to ensure all keys are present
+      const { data, error } = await supabase!.from('settings').select('*').eq('key', 'general_settings').single();
+      if (error && error.code !== 'PGRST116') throw error; // PGRST116 is single row not found, which is fine
+      
+      const val = data?.value || {};
       return {
         ...defaults.DEFAULT_SETTINGS,
-        ...data.value
+        ...val
       };
     } catch (e) {
-      console.error('Exception in getSettings from Supabase, falling back to local storage:', e);
-      return localStorageClient.getSettings();
+      console.error('Error fetching settings from Supabase:', e);
+      throw e;
     }
   },
 
   async saveSettings(settings: GeneralSettings): Promise<GeneralSettings> {
+    if (!hasSupabaseConfig()) return localStorageClient.saveSettings(settings);
     try {
-      if (!supabase) return localStorageClient.saveSettings(settings);
-      const { error } = await supabase
+      const { error } = await supabase!
         .from('settings')
         .upsert({
           key: 'general_settings',
           value: settings
         });
-      if (error) {
-        console.error('Error saving settings to Supabase, falling back to local storage:', error);
-        return localStorageClient.saveSettings(settings);
-      }
+      if (error) throw error;
       return settings;
     } catch (e) {
-      console.error('Exception in saveSettings on Supabase, falling back to local storage:', e);
-      return localStorageClient.saveSettings(settings);
+      console.error('Error saving settings to Supabase:', e);
+      throw e;
     }
   },
 
   // --- LEADS INTAKE ---
   async submitQuoteRequest(req: Omit<QuoteRequest, 'id' | 'status' | 'created_at'>): Promise<QuoteRequest> {
+    if (!hasSupabaseConfig()) return localStorageClient.submitQuoteRequest(req);
     try {
-      if (!supabase) return localStorageClient.submitQuoteRequest(req);
-      const { data, error } = await supabase
+      const { data, error } = await supabase!
         .from('quote_requests')
         .insert({
           name: req.name,
@@ -639,53 +563,44 @@ export const supabaseDbClient = {
         })
         .select()
         .single();
-      if (error) {
-        console.error('Error submitting quote request to Supabase, falling back to local storage:', error);
-        return localStorageClient.submitQuoteRequest(req);
-      }
+      if (error) throw error;
       return data;
     } catch (e) {
-      console.error('Exception in submitQuoteRequest on Supabase, falling back to local storage:', e);
-      return localStorageClient.submitQuoteRequest(req);
+      console.error('Error submitting quote request to Supabase:', e);
+      throw e;
     }
   },
 
   async getQuoteRequests(): Promise<QuoteRequest[]> {
+    if (!hasSupabaseConfig()) return localStorageClient.getQuoteRequests();
     try {
-      if (!supabase) return localStorageClient.getQuoteRequests();
-      const { data, error } = await supabase.from('quote_requests').select('*').order('created_at', { ascending: false });
-      if (error) {
-        console.error('Error fetching quote requests from Supabase, falling back to local storage:', error);
-        return localStorageClient.getQuoteRequests();
-      }
+      const { data, error } = await supabase!.from('quote_requests').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
       return data || [];
     } catch (e) {
-      console.error('Exception in getQuoteRequests from Supabase, falling back to local storage:', e);
-      return localStorageClient.getQuoteRequests();
+      console.error('Error fetching quote requests from Supabase:', e);
+      throw e;
     }
   },
 
   async updateQuoteRequestStatus(id: string, status: string, internalNotes?: string): Promise<boolean> {
+    if (!hasSupabaseConfig()) return localStorageClient.updateQuoteRequestStatus(id, status, internalNotes);
     try {
-      if (!supabase) return localStorageClient.updateQuoteRequestStatus(id, status, internalNotes);
       const updates: any = { status };
       if (internalNotes !== undefined) updates.internal_notes = internalNotes;
-      const { error } = await supabase.from('quote_requests').update(updates).eq('id', id);
-      if (error) {
-        console.error('Error updating quote request status on Supabase, falling back to local storage:', error);
-        return localStorageClient.updateQuoteRequestStatus(id, status, internalNotes);
-      }
+      const { error } = await supabase!.from('quote_requests').update(updates).eq('id', id);
+      if (error) throw error;
       return true;
     } catch (e) {
-      console.error('Exception in updateQuoteRequestStatus on Supabase, falling back to local storage:', e);
-      return localStorageClient.updateQuoteRequestStatus(id, status, internalNotes);
+      console.error('Error updating quote request status on Supabase:', e);
+      throw e;
     }
   },
 
   async submitInstallmentRequest(req: Omit<InstallmentRequest, 'id' | 'status' | 'created_at'>): Promise<InstallmentRequest> {
+    if (!hasSupabaseConfig()) return localStorageClient.submitInstallmentRequest(req);
     try {
-      if (!supabase) return localStorageClient.submitInstallmentRequest(req);
-      const { data, error } = await supabase
+      const { data, error } = await supabase!
         .from('installment_requests')
         .insert({
           name: req.name,
@@ -700,53 +615,44 @@ export const supabaseDbClient = {
         })
         .select()
         .single();
-      if (error) {
-        console.error('Error submitting installment request to Supabase, falling back to local storage:', error);
-        return localStorageClient.submitInstallmentRequest(req);
-      }
+      if (error) throw error;
       return data;
     } catch (e) {
-      console.error('Exception in submitInstallmentRequest on Supabase, falling back to local storage:', e);
-      return localStorageClient.submitInstallmentRequest(req);
+      console.error('Error submitting installment request to Supabase:', e);
+      throw e;
     }
   },
 
   async getInstallmentRequests(): Promise<InstallmentRequest[]> {
+    if (!hasSupabaseConfig()) return localStorageClient.getInstallmentRequests();
     try {
-      if (!supabase) return localStorageClient.getInstallmentRequests();
-      const { data, error } = await supabase.from('installment_requests').select('*').order('created_at', { ascending: false });
-      if (error) {
-        console.error('Error fetching installment requests from Supabase, falling back to local storage:', error);
-        return localStorageClient.getInstallmentRequests();
-      }
+      const { data, error } = await supabase!.from('installment_requests').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
       return data || [];
     } catch (e) {
-      console.error('Exception in getInstallmentRequests from Supabase, falling back to local storage:', e);
-      return localStorageClient.getInstallmentRequests();
+      console.error('Error fetching installment requests from Supabase:', e);
+      throw e;
     }
   },
 
   async updateInstallmentRequestStatus(id: string, status: string, internalNotes?: string): Promise<boolean> {
+    if (!hasSupabaseConfig()) return localStorageClient.updateInstallmentRequestStatus(id, status, internalNotes);
     try {
-      if (!supabase) return localStorageClient.updateInstallmentRequestStatus(id, status, internalNotes);
       const updates: any = { status };
       if (internalNotes !== undefined) updates.internal_notes = internalNotes;
-      const { error } = await supabase.from('installment_requests').update(updates).eq('id', id);
-      if (error) {
-        console.error('Error updating installment request status on Supabase, falling back to local storage:', error);
-        return localStorageClient.updateInstallmentRequestStatus(id, status, internalNotes);
-      }
+      const { error } = await supabase!.from('installment_requests').update(updates).eq('id', id);
+      if (error) throw error;
       return true;
     } catch (e) {
-      console.error('Exception in updateInstallmentRequestStatus on Supabase, falling back to local storage:', e);
-      return localStorageClient.updateInstallmentRequestStatus(id, status, internalNotes);
+      console.error('Error updating installment request status on Supabase:', e);
+      throw e;
     }
   },
 
   async submitSellRequest(req: Omit<SellVehicleRequest, 'id' | 'status' | 'created_at'>): Promise<SellVehicleRequest> {
+    if (!hasSupabaseConfig()) return localStorageClient.submitSellRequest(req);
     try {
-      if (!supabase) return localStorageClient.submitSellRequest(req);
-      const { data, error } = await supabase
+      const { data, error } = await supabase!
         .from('sell_vehicle_requests')
         .insert({
           name: req.name,
@@ -764,53 +670,44 @@ export const supabaseDbClient = {
         })
         .select()
         .single();
-      if (error) {
-        console.error('Error submitting sell request to Supabase, falling back to local storage:', error);
-        return localStorageClient.submitSellRequest(req);
-      }
+      if (error) throw error;
       return data;
     } catch (e) {
-      console.error('Exception in submitSellRequest on Supabase, falling back to local storage:', e);
-      return localStorageClient.submitSellRequest(req);
+      console.error('Error submitting sell request to Supabase:', e);
+      throw e;
     }
   },
 
   async getSellVehicleRequests(): Promise<SellVehicleRequest[]> {
+    if (!hasSupabaseConfig()) return localStorageClient.getSellVehicleRequests();
     try {
-      if (!supabase) return localStorageClient.getSellVehicleRequests();
-      const { data, error } = await supabase.from('sell_vehicle_requests').select('*').order('created_at', { ascending: false });
-      if (error) {
-        console.error('Error fetching sell requests from Supabase, falling back to local storage:', error);
-        return localStorageClient.getSellVehicleRequests();
-      }
+      const { data, error } = await supabase!.from('sell_vehicle_requests').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
       return data || [];
     } catch (e) {
-      console.error('Exception in getSellVehicleRequests from Supabase, falling back to local storage:', e);
-      return localStorageClient.getSellVehicleRequests();
+      console.error('Error fetching sell requests from Supabase:', e);
+      throw e;
     }
   },
 
   async updateSellRequestStatus(id: string, status: string, internalNotes?: string): Promise<boolean> {
+    if (!hasSupabaseConfig()) return localStorageClient.updateSellRequestStatus(id, status, internalNotes);
     try {
-      if (!supabase) return localStorageClient.updateSellRequestStatus(id, status, internalNotes);
       const updates: any = { status };
       if (internalNotes !== undefined) updates.internal_notes = internalNotes;
-      const { error } = await supabase.from('sell_vehicle_requests').update(updates).eq('id', id);
-      if (error) {
-        console.error('Error updating sell request status on Supabase, falling back to local storage:', error);
-        return localStorageClient.updateSellRequestStatus(id, status, internalNotes);
-      }
+      const { error } = await supabase!.from('sell_vehicle_requests').update(updates).eq('id', id);
+      if (error) throw error;
       return true;
     } catch (e) {
-      console.error('Exception in updateSellRequestStatus on Supabase, falling back to local storage:', e);
-      return localStorageClient.updateSellRequestStatus(id, status, internalNotes);
+      console.error('Error updating sell request status on Supabase:', e);
+      throw e;
     }
   },
 
   async submitTestDriveRequest(req: Omit<TestDriveRequest, 'id' | 'status' | 'created_at'>): Promise<TestDriveRequest> {
+    if (!hasSupabaseConfig()) return localStorageClient.submitTestDriveRequest(req);
     try {
-      if (!supabase) return localStorageClient.submitTestDriveRequest(req);
-      const { data, error } = await supabase
+      const { data, error } = await supabase!
         .from('test_drive_requests')
         .insert({
           name: req.name,
@@ -823,53 +720,44 @@ export const supabaseDbClient = {
         })
         .select()
         .single();
-      if (error) {
-        console.error('Error submitting test drive request to Supabase, falling back to local storage:', error);
-        return localStorageClient.submitTestDriveRequest(req);
-      }
+      if (error) throw error;
       return data;
     } catch (e) {
-      console.error('Exception in submitTestDriveRequest on Supabase, falling back to local storage:', e);
-      return localStorageClient.submitTestDriveRequest(req);
+      console.error('Error submitting test drive request to Supabase:', e);
+      throw e;
     }
   },
 
   async getTestDriveRequests(): Promise<TestDriveRequest[]> {
+    if (!hasSupabaseConfig()) return localStorageClient.getTestDriveRequests();
     try {
-      if (!supabase) return localStorageClient.getTestDriveRequests();
-      const { data, error } = await supabase.from('test_drive_requests').select('*').order('created_at', { ascending: false });
-      if (error) {
-        console.error('Error fetching test drive requests from Supabase, falling back to local storage:', error);
-        return localStorageClient.getTestDriveRequests();
-      }
+      const { data, error } = await supabase!.from('test_drive_requests').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
       return data || [];
     } catch (e) {
-      console.error('Exception in getTestDriveRequests from Supabase, falling back to local storage:', e);
-      return localStorageClient.getTestDriveRequests();
+      console.error('Error fetching test drive requests from Supabase:', e);
+      throw e;
     }
   },
 
   async updateTestDriveRequestStatus(id: string, status: string, internalNotes?: string): Promise<boolean> {
+    if (!hasSupabaseConfig()) return localStorageClient.updateTestDriveRequestStatus(id, status, internalNotes);
     try {
-      if (!supabase) return localStorageClient.updateTestDriveRequestStatus(id, status, internalNotes);
       const updates: any = { status };
       if (internalNotes !== undefined) updates.internal_notes = internalNotes;
-      const { error } = await supabase.from('test_drive_requests').update(updates).eq('id', id);
-      if (error) {
-        console.error('Error updating test drive request status on Supabase, falling back to local storage:', error);
-        return localStorageClient.updateTestDriveRequestStatus(id, status, internalNotes);
-      }
+      const { error } = await supabase!.from('test_drive_requests').update(updates).eq('id', id);
+      if (error) throw error;
       return true;
     } catch (e) {
-      console.error('Exception in updateTestDriveRequestStatus on Supabase, falling back to local storage:', e);
-      return localStorageClient.updateTestDriveRequestStatus(id, status, internalNotes);
+      console.error('Error updating test drive request status on Supabase:', e);
+      throw e;
     }
   },
 
   async submitContact(req: Omit<Contact, 'id' | 'status' | 'created_at'>): Promise<Contact> {
+    if (!hasSupabaseConfig()) return localStorageClient.submitContact(req);
     try {
-      if (!supabase) return localStorageClient.submitContact(req);
-      const { data, error } = await supabase
+      const { data, error } = await supabase!
         .from('contacts')
         .insert({
           name: req.name,
@@ -880,44 +768,35 @@ export const supabaseDbClient = {
         })
         .select()
         .single();
-      if (error) {
-        console.error('Error submitting contact to Supabase, falling back to local storage:', error);
-        return localStorageClient.submitContact(req);
-      }
+      if (error) throw error;
       return data;
     } catch (e) {
-      console.error('Exception in submitContact on Supabase, falling back to local storage:', e);
-      return localStorageClient.submitContact(req);
+      console.error('Error submitting contact to Supabase:', e);
+      throw e;
     }
   },
 
   async getContacts(): Promise<Contact[]> {
+    if (!hasSupabaseConfig()) return localStorageClient.getContacts();
     try {
-      if (!supabase) return localStorageClient.getContacts();
-      const { data, error } = await supabase.from('contacts').select('*').order('created_at', { ascending: false });
-      if (error) {
-        console.error('Error fetching contacts from Supabase, falling back to local storage:', error);
-        return localStorageClient.getContacts();
-      }
+      const { data, error } = await supabase!.from('contacts').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
       return data || [];
     } catch (e) {
-      console.error('Exception in getContacts from Supabase, falling back to local storage:', e);
-      return localStorageClient.getContacts();
+      console.error('Error fetching contacts from Supabase:', e);
+      throw e;
     }
   },
 
   async updateContactStatus(id: string, status: string): Promise<boolean> {
+    if (!hasSupabaseConfig()) return localStorageClient.updateContactStatus(id, status);
     try {
-      if (!supabase) return localStorageClient.updateContactStatus(id, status);
-      const { error } = await supabase.from('contacts').update({ status }).eq('id', id);
-      if (error) {
-        console.error('Error updating contact status on Supabase, falling back to local storage:', error);
-        return localStorageClient.updateContactStatus(id, status);
-      }
+      const { error } = await supabase!.from('contacts').update({ status }).eq('id', id);
+      if (error) throw error;
       return true;
     } catch (e) {
-      console.error('Exception in updateContactStatus on Supabase, falling back to local storage:', e);
-      return localStorageClient.updateContactStatus(id, status);
+      console.error('Error updating contact status on Supabase:', e);
+      throw e;
     }
   },
 
@@ -930,23 +809,23 @@ export const supabaseDbClient = {
     totalTestDrives: number;
     totalContacts: number;
   }> {
+    if (!hasSupabaseConfig()) return localStorageClient.getAdminStats();
     try {
-      if (!supabase) return localStorageClient.getAdminStats();
       const [vehiclesRes, quotesRes, installmentsRes, sellsRes, testDrivesRes, contactsRes] = await Promise.all([
-        supabase.from('vehicles').select('*', { count: 'exact', head: true }),
-        supabase.from('quote_requests').select('*', { count: 'exact', head: true }),
-        supabase.from('installment_requests').select('*', { count: 'exact', head: true }),
-        supabase.from('sell_vehicle_requests').select('*', { count: 'exact', head: true }),
-        supabase.from('test_drive_requests').select('*', { count: 'exact', head: true }),
-        supabase.from('contacts').select('*', { count: 'exact', head: true })
+        supabase!.from('vehicles').select('*', { count: 'exact', head: true }),
+        supabase!.from('quote_requests').select('*', { count: 'exact', head: true }),
+        supabase!.from('installment_requests').select('*', { count: 'exact', head: true }),
+        supabase!.from('sell_vehicle_requests').select('*', { count: 'exact', head: true }),
+        supabase!.from('test_drive_requests').select('*', { count: 'exact', head: true }),
+        supabase!.from('contacts').select('*', { count: 'exact', head: true })
       ]);
 
-      if (vehiclesRes.error || quotesRes.error || installmentsRes.error || sellsRes.error || testDrivesRes.error || contactsRes.error) {
-        console.warn('One of the stats queries returned an error from Supabase, falling back to local storage:', 
-          vehiclesRes.error || quotesRes.error || installmentsRes.error || sellsRes.error || testDrivesRes.error || contactsRes.error
-        );
-        return localStorageClient.getAdminStats();
-      }
+      if (vehiclesRes.error) throw vehiclesRes.error;
+      if (quotesRes.error) throw quotesRes.error;
+      if (installmentsRes.error) throw installmentsRes.error;
+      if (sellsRes.error) throw sellsRes.error;
+      if (testDrivesRes.error) throw testDrivesRes.error;
+      if (contactsRes.error) throw contactsRes.error;
 
       return {
         totalVehicles: vehiclesRes.count || 0,
@@ -957,8 +836,8 @@ export const supabaseDbClient = {
         totalContacts: contactsRes.count || 0
       };
     } catch (e) {
-      console.error('Exception in getAdminStats from Supabase, falling back to local storage:', e);
-      return localStorageClient.getAdminStats();
+      console.error('Error fetching admin stats from Supabase:', e);
+      throw e;
     }
   },
 

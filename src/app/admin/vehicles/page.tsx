@@ -9,6 +9,7 @@ import {
 import db from '@/lib/db';
 import { uploadImage } from '@/lib/db/upload';
 import { Vehicle, Brand, Category, VehicleImage } from '@/lib/db/types';
+import ImageUpload from '@/components/ImageUpload';
 
 export default function AdminVehicles() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -31,7 +32,7 @@ export default function AdminVehicles() {
   // Modal control
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<Partial<Vehicle> | null>(null);
-  const [vehicleImages, setVehicleImages] = useState<{ id?: string; image_url: string; sort_order: number; is_cover: boolean }[]>([]);
+  const [galleryImages, setGalleryImages] = useState<{ id?: string; image_url: string; sort_order: number; is_cover: boolean }[]>([]);
   const [specItems, setSpecItems] = useState<{ key: string; value: string }[]>([]);
   const [checklistItems, setChecklistItems] = useState<{ key: string; value: string }[]>([]);
   
@@ -111,7 +112,7 @@ export default function AdminVehicles() {
       is_sold: false,
       is_visible: true,
     });
-    setVehicleImages([]);
+    setGalleryImages([]);
     setSpecItems([]);
     setChecklistItems([]);
     setIsModalOpen(true);
@@ -125,7 +126,7 @@ export default function AdminVehicles() {
       if (res) {
         const { vehicle, images } = res;
         setSelectedVehicle(vehicle);
-        setVehicleImages(images.map(img => ({
+        setGalleryImages(images.map(img => ({
           id: img.id,
           image_url: img.image_url,
           sort_order: img.sort_order,
@@ -230,15 +231,16 @@ export default function AdminVehicles() {
     try {
       const uploads = Array.from(files).map(async (file, idx) => {
         const url = await uploadImage(file, 'vehicles');
+        console.log("Uploaded public URL:", url);
         return {
           image_url: url,
-          sort_order: vehicleImages.length + idx,
-          is_cover: vehicleImages.length === 0 && idx === 0
+          sort_order: galleryImages.length + idx,
+          is_cover: galleryImages.length === 0 && idx === 0
         };
       });
 
       const uploaded = await Promise.all(uploads);
-      setVehicleImages([...vehicleImages, ...uploaded]);
+      setGalleryImages([...galleryImages, ...uploaded]);
     } catch (err) {
       alert('Lỗi tải ảnh lên hệ thống.');
     } finally {
@@ -248,48 +250,48 @@ export default function AdminVehicles() {
   };
 
   const addImageUrl = () => {
-    const url = prompt('Nhập đường dẫn URL ảnh liên kết:');
+    const url = prompt('Nhập URL ảnh liên kết:');
     if (!url || !url.trim()) return;
-    setVehicleImages([...vehicleImages, {
+    setGalleryImages([...galleryImages, {
       image_url: url.trim(),
-      sort_order: vehicleImages.length,
-      is_cover: vehicleImages.length === 0
+      sort_order: galleryImages.length,
+      is_cover: galleryImages.length === 0
     }]);
   };
 
   // Cover Image helper
   const setAsCover = (idx: number) => {
-    const updated = vehicleImages.map((img, i) => ({
+    const updated = galleryImages.map((img, i) => ({
       ...img,
       is_cover: i === idx
     }));
-    setVehicleImages(updated);
+    setGalleryImages(updated);
   };
 
   // Sorting Images helper
   const moveImage = (idx: number, direction: 'up' | 'down') => {
     if (direction === 'up' && idx === 0) return;
-    if (direction === 'down' && idx === vehicleImages.length - 1) return;
+    if (direction === 'down' && idx === galleryImages.length - 1) return;
 
     const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
-    const newImages = [...vehicleImages];
+    const newImages = [...galleryImages];
     const temp = newImages[idx];
     newImages[idx] = newImages[targetIdx];
     newImages[targetIdx] = temp;
 
     // Reset sort_order index
     const sorted = newImages.map((img, i) => ({ ...img, sort_order: i }));
-    setVehicleImages(sorted);
+    setGalleryImages(sorted);
   };
 
   const removeImage = (idx: number) => {
-    const filtered = vehicleImages.filter((_, i) => i !== idx);
+    const filtered = galleryImages.filter((_, i) => i !== idx);
     // If we removed cover image, reassign cover to first element if available
     const hasCover = filtered.some(img => img.is_cover);
     if (!hasCover && filtered.length > 0) {
       filtered[0].is_cover = true;
     }
-    setVehicleImages(filtered);
+    setGalleryImages(filtered);
   };
 
   // Save full vehicle form
@@ -324,15 +326,21 @@ export default function AdminVehicles() {
       // Generate slug automatically if empty
       const slug = selectedVehicle.slug || selectedVehicle.name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
 
-      const vehicleData = {
+      const payload = {
         ...selectedVehicle,
         slug,
         specs_json,
         used_checklist_json
       } as Omit<Vehicle, 'id'> & { id?: string };
 
-      await db.saveVehicle(vehicleData, vehicleImages);
-      alert('Lưu thông tin xe máy thành công.');
+      // Requirement 11: Debug logs
+      console.log("Saving vehicle payload:", payload);
+      console.log("Saving gallery images:", galleryImages);
+
+      await db.saveVehicle(payload, galleryImages);
+      
+      // Requirement 8: Success message
+      alert('Đã upload và lưu URL ảnh vào database');
       setIsModalOpen(false);
       loadVehicles();
     } catch (err: any) {
@@ -632,6 +640,16 @@ export default function AdminVehicles() {
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Cover Image */}
+                  <div className="md:col-span-3">
+                    <ImageUpload
+                      value={selectedVehicle.og_image || ''}
+                      onChange={(url) => setSelectedVehicle({ ...selectedVehicle, og_image: url })}
+                      folder="vehicles"
+                      label="Ảnh đại diện (og_image)"
+                    />
+                  </div>
+
                   {/* Name */}
                   <div className="space-y-1 md:col-span-2">
                     <label className="text-[10px] font-bold text-brand-gray uppercase tracking-widest">Tên dòng xe *</label>
@@ -911,13 +929,13 @@ export default function AdminVehicles() {
                 )}
 
                 {/* Images list */}
-                {vehicleImages.length === 0 ? (
+                {galleryImages.length === 0 ? (
                   <div className="bg-brand-light p-8 text-center rounded-xl border border-gray-150 text-xs text-brand-gray">
                     Chưa có ảnh nào được liên kết với dòng xe này. Vui lòng tải ảnh lên.
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4">
-                    {vehicleImages.map((img, idx) => (
+                    {galleryImages.map((img, idx) => (
                       <div 
                         key={idx} 
                         className={`bg-white rounded-xl border p-2 relative flex flex-col justify-between space-y-2 group shadow-sm transition-all ${
@@ -964,7 +982,7 @@ export default function AdminVehicles() {
                             <button
                               type="button"
                               onClick={() => moveImage(idx, 'down')}
-                              disabled={idx === vehicleImages.length - 1}
+                              disabled={idx === galleryImages.length - 1}
                               className="p-1 hover:text-brand-dark rounded disabled:opacity-30 cursor-pointer"
                             >
                               <ArrowDown className="w-3.5 h-3.5" />

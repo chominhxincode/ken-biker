@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Edit3, Trash2, Save, X, Upload, ImageIcon, ArrowUp, ArrowDown } from 'lucide-react';
 import db from '@/lib/db';
 import { uploadImage } from '@/lib/db/upload';
 import { Slider } from '@/lib/db/types';
+import ImageUpload from '@/components/ImageUpload';
 
 export default function AdminSliders() {
   const [sliders, setSliders] = useState<Slider[]>([]);
@@ -14,12 +15,6 @@ export default function AdminSliders() {
   // Modal Control
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSlider, setSelectedSlider] = useState<Partial<Slider> | null>(null);
-
-  // Upload States
-  const [uploadingDesktop, setUploadingDesktop] = useState(false);
-  const [uploadingMobile, setUploadingMobile] = useState(false);
-  const fileInputDesktopRef = useRef<HTMLInputElement>(null);
-  const fileInputMobileRef = useRef<HTMLInputElement>(null);
 
   const loadSliders = async () => {
     try {
@@ -75,33 +70,7 @@ export default function AdminSliders() {
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, target: 'desktop' | 'mobile') => {
-    const file = e.target.files?.[0];
-    if (!file) return;
 
-    if (target === 'desktop') setUploadingDesktop(true);
-    else setUploadingMobile(true);
-
-    try {
-      const url = await uploadImage(file, 'sliders');
-      setSelectedSlider(prev => {
-        if (!prev) return null;
-        return target === 'desktop' 
-          ? { ...prev, image_desktop_url: url } 
-          : { ...prev, image_mobile_url: url };
-      });
-    } catch (err) {
-      alert('Lỗi tải ảnh slider.');
-    } finally {
-      if (target === 'desktop') {
-        setUploadingDesktop(false);
-        if (fileInputDesktopRef.current) fileInputDesktopRef.current.value = '';
-      } else {
-        setUploadingMobile(false);
-        if (fileInputMobileRef.current) fileInputMobileRef.current.value = '';
-      }
-    }
-  };
 
   const moveSliderOrder = async (idx: number, direction: 'up' | 'down') => {
     if (direction === 'up' && idx === 0) return;
@@ -147,8 +116,13 @@ export default function AdminSliders() {
         sort_order: Number(selectedSlider.sort_order || 0)
       } as Omit<Slider, 'id'> & { id?: string };
 
+      // Log payload
+      console.log("Saving slider payload:", sliderData);
+
       await db.saveSlider(sliderData);
-      alert('Lưu Banner slider thành công.');
+      
+      // Success alert
+      alert('Đã upload và lưu URL ảnh vào database');
       setIsModalOpen(false);
       loadSliders();
     } catch (err: any) {
@@ -323,92 +297,20 @@ export default function AdminSliders() {
               </div>
 
               {/* Desktop Image Upload */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-brand-gray uppercase tracking-widest block font-bold text-brand-red">Ảnh hiển thị Máy tính (Desktop Image) *</label>
-                <div className="flex items-center space-x-3">
-                  <div className="w-24 aspect-[21/9] bg-brand-light border border-gray-200 rounded-lg overflow-hidden flex items-center justify-center p-1 shrink-0">
-                    {selectedSlider.image_desktop_url ? (
-                      <img src={selectedSlider.image_desktop_url} alt="Desktop" className="w-full h-full object-cover" />
-                    ) : (
-                      <ImageIcon className="w-5 h-5 text-gray-400" />
-                    )}
-                  </div>
-                  <div className="flex-grow flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => fileInputDesktopRef.current?.click()}
-                      className="bg-brand-dark hover:bg-brand-red text-white text-[10px] font-bold px-3 py-2 rounded uppercase tracking-wider flex items-center space-x-1 cursor-pointer"
-                      style={{ minHeight: '36px' }}
-                    >
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Tải ảnh PC</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const url = prompt('Nhập URL ảnh Desktop:');
-                        if (url) setSelectedSlider({ ...selectedSlider, image_desktop_url: url.trim() });
-                      }}
-                      className="border border-gray-200 hover:border-brand-dark text-brand-dark text-[10px] font-bold px-3 py-2 rounded uppercase tracking-wider cursor-pointer"
-                      style={{ minHeight: '36px' }}
-                    >
-                      Nhập URL
-                    </button>
-                    <input
-                      type="file"
-                      ref={fileInputDesktopRef}
-                      onChange={(e) => handleFileUpload(e, 'desktop')}
-                      accept="image/*"
-                      className="hidden"
-                    />
-                  </div>
-                </div>
-                {uploadingDesktop && <p className="text-[9px] text-brand-red font-bold animate-pulse">Đang tải ảnh PC...</p>}
-              </div>
+              <ImageUpload
+                value={selectedSlider.image_desktop_url || ''}
+                onChange={(url) => setSelectedSlider(prev => prev ? { ...prev, image_desktop_url: url } : null)}
+                folder="sliders"
+                label="Ảnh hiển thị Máy tính (Desktop Image) *"
+              />
 
               {/* Mobile Image Upload */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-brand-gray uppercase tracking-widest block font-bold text-blue-600">Ảnh hiển thị Điện thoại (Mobile Image - Tối ưu dọc)</label>
-                <div className="flex items-center space-x-3">
-                  <div className="w-16 aspect-[9/16] bg-brand-light border border-gray-200 rounded-lg overflow-hidden flex items-center justify-center p-1 shrink-0 h-16">
-                    {selectedSlider.image_mobile_url ? (
-                      <img src={selectedSlider.image_mobile_url} alt="Mobile" className="w-full h-full object-cover" />
-                    ) : (
-                      <ImageIcon className="w-5 h-5 text-gray-400" />
-                    )}
-                  </div>
-                  <div className="flex-grow flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => fileInputMobileRef.current?.click()}
-                      className="bg-brand-dark hover:bg-brand-red text-white text-[10px] font-bold px-3 py-2 rounded uppercase tracking-wider flex items-center space-x-1 cursor-pointer"
-                      style={{ minHeight: '36px' }}
-                    >
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Tải ảnh Mobile</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const url = prompt('Nhập URL ảnh Mobile:');
-                        if (url) setSelectedSlider({ ...selectedSlider, image_mobile_url: url.trim() });
-                      }}
-                      className="border border-gray-200 hover:border-brand-dark text-brand-dark text-[10px] font-bold px-3 py-2 rounded uppercase tracking-wider cursor-pointer"
-                      style={{ minHeight: '36px' }}
-                    >
-                      Nhập URL
-                    </button>
-                    <input
-                      type="file"
-                      ref={fileInputMobileRef}
-                      onChange={(e) => handleFileUpload(e, 'mobile')}
-                      accept="image/*"
-                      className="hidden"
-                    />
-                  </div>
-                </div>
-                {uploadingMobile && <p className="text-[9px] text-brand-red font-bold animate-pulse">Đang tải ảnh Mobile...</p>}
-              </div>
+              <ImageUpload
+                value={selectedSlider.image_mobile_url || ''}
+                onChange={(url) => setSelectedSlider(prev => prev ? { ...prev, image_mobile_url: url } : null)}
+                folder="sliders"
+                label="Ảnh hiển thị Điện thoại (Mobile Image - Tối ưu dọc)"
+              />
 
               {/* Link & CTA Text */}
               <div className="grid grid-cols-2 gap-4">

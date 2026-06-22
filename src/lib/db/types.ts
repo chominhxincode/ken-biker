@@ -208,4 +208,5 @@ export interface GeneralSettings {
   cta_installment_text?: string;
   cta_installment_link?: string;
   footer_text?: string;
+  og_image_url?: string;
 }

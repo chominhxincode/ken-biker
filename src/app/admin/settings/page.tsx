@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Settings, Save, Upload, MapPin, Phone, Mail, Globe } from 'lucide-react';
 import db from '@/lib/db';
 import { uploadImage } from '@/lib/db/upload';
 import { GeneralSettings } from '@/lib/db/types';
+import ImageUpload from '@/components/ImageUpload';
 
 export default function AdminSettings() {
   const [settings, setSettings] = useState<GeneralSettings>({
@@ -34,72 +35,12 @@ export default function AdminSettings() {
     cta_consult_link: '',
     cta_installment_text: '',
     cta_installment_link: '',
-    footer_text: ''
+    footer_text: '',
+    og_image_url: ''
   });
 
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-
-  // File upload states
-  const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [uploadingFavicon, setUploadingFavicon] = useState(false);
-  const [uploadingHeroDesktop, setUploadingHeroDesktop] = useState(false);
-  const [uploadingHeroMobile, setUploadingHeroMobile] = useState(false);
-  const [uploadingIntroImage, setUploadingIntroImage] = useState(false);
-  
-  const fileInputLogoRef = useRef<HTMLInputElement>(null);
-  const fileInputFaviconRef = useRef<HTMLInputElement>(null);
-  const fileInputHeroDesktopRef = useRef<HTMLInputElement>(null);
-  const fileInputHeroMobileRef = useRef<HTMLInputElement>(null);
-  const fileInputIntroImageRef = useRef<HTMLInputElement>(null);
-
-  const handleHeroDesktopUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingHeroDesktop(true);
-    try {
-      const url = await uploadImage(file, 'settings');
-      setSettings(prev => ({ ...prev, hero_image_desktop: url }));
-      alert('Tải ảnh desktop thành công. Hãy bấm nút lưu ở dưới cùng để ghi nhận.');
-    } catch (err) {
-      alert('Lỗi tải ảnh lên.');
-    } finally {
-      setUploadingHeroDesktop(false);
-      if (fileInputHeroDesktopRef.current) fileInputHeroDesktopRef.current.value = '';
-    }
-  };
-
-  const handleHeroMobileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingHeroMobile(true);
-    try {
-      const url = await uploadImage(file, 'settings');
-      setSettings(prev => ({ ...prev, hero_image_mobile: url }));
-      alert('Tải ảnh mobile thành công. Hãy bấm nút lưu ở dưới cùng để ghi nhận.');
-    } catch (err) {
-      alert('Lỗi tải ảnh lên.');
-    } finally {
-      setUploadingHeroMobile(false);
-      if (fileInputHeroMobileRef.current) fileInputHeroMobileRef.current.value = '';
-    }
-  };
-
-  const handleIntroImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingIntroImage(true);
-    try {
-      const url = await uploadImage(file, 'settings');
-      setSettings(prev => ({ ...prev, intro_image: url }));
-      alert('Tải ảnh giới thiệu thành công. Hãy bấm nút lưu ở dưới cùng để ghi nhận.');
-    } catch (err) {
-      alert('Lỗi tải ảnh lên.');
-    } finally {
-      setUploadingIntroImage(false);
-      if (fileInputIntroImageRef.current) fileInputIntroImageRef.current.value = '';
-    }
-  };
 
   const loadSettings = async () => {
     try {
@@ -122,51 +63,19 @@ export default function AdminSettings() {
     loadSettings();
   }, []);
 
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploadingLogo(true);
-    try {
-      const url = await uploadImage(file, 'settings');
-      const updatedSettings = { ...settings, logo_url: url };
-      setSettings(updatedSettings);
-      await db.saveSettings(updatedSettings);
-      alert('Đã lưu logo vào database');
-    } catch (err) {
-      alert('Lỗi tải logo lên hệ thống.');
-    } finally {
-      setUploadingLogo(false);
-      if (fileInputLogoRef.current) fileInputLogoRef.current.value = '';
-    }
-  };
-
-  const handleFaviconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploadingFavicon(true);
-    try {
-      const url = await uploadImage(file, 'favicon');
-      const updatedSettings = { ...settings, favicon_url: url };
-      setSettings(updatedSettings);
-      await db.saveSettings(updatedSettings);
-      alert('Đã lưu favicon vào database');
-    } catch (err) {
-      alert('Lỗi tải favicon lên hệ thống.');
-    } finally {
-      setUploadingFavicon(false);
-      if (fileInputFaviconRef.current) fileInputFaviconRef.current.value = '';
-    }
-  };
-
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     setActionLoading(true);
 
     try {
+      // Log payload
+      console.log("Saving settings payload:", settings);
+
       await db.saveSettings(settings);
-      alert('Lưu cấu hình hệ thống website thành công. Vui lòng tải lại trang showroom để áp dụng thay đổi.');
+      
+      // Success alert
+      alert('Đã upload và lưu URL ảnh vào database');
+      loadSettings();
     } catch (err: any) {
       alert('Lỗi lưu cấu hình: ' + (err.message || err));
     } finally {
@@ -220,96 +129,20 @@ export default function AdminSettings() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Logo upload */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-brand-gray uppercase tracking-widest block">Ảnh Logo hiển thị (Header/Footer)</label>
-                <div className="flex items-center space-x-4">
-                  <div className="w-14 h-14 bg-brand-dark border border-white/5 rounded-lg overflow-hidden flex items-center justify-center p-1.5 shrink-0 relative">
-                    {settings.logo_url ? (
-                      <img src={settings.logo_url} alt="Logo Preview" className="max-w-full max-h-full object-contain" />
-                    ) : (
-                      <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Logo</span>
-                    )}
-                  </div>
-                  <div className="flex-grow space-y-1">
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => fileInputLogoRef.current?.click()}
-                        className="bg-brand-dark hover:bg-brand-red text-white text-[10px] font-bold px-3 py-2 rounded uppercase tracking-wider flex items-center space-x-1 cursor-pointer"
-                        style={{ minHeight: '36px' }}
-                      >
-                        <Upload className="w-3.5 h-3.5" />
-                        <span>Tải logo mới</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const url = prompt('Nhập URL logo của bạn:');
-                          if (url) setSettings({ ...settings, logo_url: url.trim() });
-                        }}
-                        className="border border-gray-200 hover:border-brand-dark text-brand-dark text-[10px] font-bold px-3 py-2 rounded uppercase tracking-wider cursor-pointer"
-                        style={{ minHeight: '36px' }}
-                      >
-                        Nhập URL logo
-                      </button>
-                    </div>
-                    <input
-                      type="file"
-                      ref={fileInputLogoRef}
-                      onChange={handleLogoUpload}
-                      accept="image/*"
-                      className="hidden"
-                    />
-                    {uploadingLogo && <span className="text-[9px] text-brand-red font-bold animate-pulse">Đang tải ảnh logo lên...</span>}
-                  </div>
-                </div>
-              </div>
+              <ImageUpload
+                value={settings.logo_url || ''}
+                onChange={(url) => setSettings(prev => ({ ...prev, logo_url: url }))}
+                folder="settings"
+                label="Ảnh Logo hiển thị (Header/Footer)"
+              />
 
               {/* Favicon upload */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-brand-gray uppercase tracking-widest block">Ảnh Favicon hiển thị (Trình duyệt)</label>
-                <div className="flex items-center space-x-4">
-                  <div className="w-14 h-14 bg-brand-light border border-gray-250 rounded-lg overflow-hidden flex items-center justify-center p-1.5 shrink-0 relative">
-                    {settings.favicon_url ? (
-                      <img src={settings.favicon_url} alt="Favicon Preview" className="max-w-full max-h-full object-contain" />
-                    ) : (
-                      <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Favicon</span>
-                    )}
-                  </div>
-                  <div className="flex-grow space-y-1">
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => fileInputFaviconRef.current?.click()}
-                        className="bg-brand-dark hover:bg-brand-red text-white text-[10px] font-bold px-3 py-2 rounded uppercase tracking-wider flex items-center space-x-1 cursor-pointer"
-                        style={{ minHeight: '36px' }}
-                      >
-                        <Upload className="w-3.5 h-3.5" />
-                        <span>Tải favicon mới</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const url = prompt('Nhập URL favicon của bạn:');
-                          if (url) setSettings({ ...settings, favicon_url: url.trim() });
-                        }}
-                        className="border border-gray-200 hover:border-brand-dark text-brand-dark text-[10px] font-bold px-3 py-2 rounded uppercase tracking-wider cursor-pointer"
-                        style={{ minHeight: '36px' }}
-                      >
-                        Nhập URL favicon
-                      </button>
-                    </div>
-                    <input
-                      type="file"
-                      ref={fileInputFaviconRef}
-                      onChange={handleFaviconUpload}
-                      accept="image/*"
-                      className="hidden"
-                    />
-                    {uploadingFavicon && <span className="text-[9px] text-brand-red font-bold animate-pulse">Đang tải ảnh favicon lên...</span>}
-                  </div>
-                </div>
-              </div>
+              <ImageUpload
+                value={settings.favicon_url || ''}
+                onChange={(url) => setSettings(prev => ({ ...prev, favicon_url: url }))}
+                folder="settings"
+                label="Ảnh Favicon hiển thị (Trình duyệt)"
+              />
             </div>
           </div>
         </div>
@@ -493,96 +326,20 @@ export default function AdminSettings() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Hero Desktop Upload */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-brand-gray uppercase tracking-widest block">Ảnh Hero Desktop (Kích thước PC)</label>
-                <div className="flex items-center space-x-4">
-                  <div className="w-16 h-10 bg-brand-light border border-gray-200 rounded-lg overflow-hidden flex items-center justify-center p-1 shrink-0 relative">
-                    {settings.hero_image_desktop ? (
-                      <img src={settings.hero_image_desktop} alt="Hero PC Preview" className="max-w-full max-h-full object-contain" />
-                    ) : (
-                      <span className="text-[8px] text-gray-400">Chưa có ảnh</span>
-                    )}
-                  </div>
-                  <div className="flex-grow space-y-1">
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => fileInputHeroDesktopRef.current?.click()}
-                        className="bg-brand-dark hover:bg-brand-red text-white text-[10px] font-bold px-3 py-2 rounded uppercase tracking-wider flex items-center space-x-1 cursor-pointer"
-                        style={{ minHeight: '36px' }}
-                      >
-                        <Upload className="w-3.5 h-3.5" />
-                        <span>Tải ảnh PC</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const url = prompt('Nhập URL ảnh Desktop:');
-                          if (url) setSettings({ ...settings, hero_image_desktop: url.trim() });
-                        }}
-                        className="border border-gray-200 hover:border-brand-dark text-brand-dark text-[10px] font-bold px-3 py-2 rounded uppercase tracking-wider cursor-pointer"
-                        style={{ minHeight: '36px' }}
-                      >
-                        Dán URL
-                      </button>
-                    </div>
-                    <input
-                      type="file"
-                      ref={fileInputHeroDesktopRef}
-                      onChange={handleHeroDesktopUpload}
-                      accept="image/*"
-                      className="hidden"
-                    />
-                    {uploadingHeroDesktop && <span className="text-[9px] text-brand-red font-bold animate-pulse">Đang tải...</span>}
-                  </div>
-                </div>
-              </div>
+              <ImageUpload
+                value={settings.hero_image_desktop || ''}
+                onChange={(url) => setSettings(prev => ({ ...prev, hero_image_desktop: url }))}
+                folder="settings"
+                label="Ảnh Hero Desktop (Kích thước PC)"
+              />
 
               {/* Hero Mobile Upload */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-brand-gray uppercase tracking-widest block">Ảnh Hero Mobile (Kích thước Điện thoại)</label>
-                <div className="flex items-center space-x-4">
-                  <div className="w-10 h-10 bg-brand-light border border-gray-200 rounded-lg overflow-hidden flex items-center justify-center p-1 shrink-0 relative">
-                    {settings.hero_image_mobile ? (
-                      <img src={settings.hero_image_mobile} alt="Hero Mobile Preview" className="max-w-full max-h-full object-contain" />
-                    ) : (
-                      <span className="text-[8px] text-gray-400">Chưa có ảnh</span>
-                    )}
-                  </div>
-                  <div className="flex-grow space-y-1">
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => fileInputHeroMobileRef.current?.click()}
-                        className="bg-brand-dark hover:bg-brand-red text-white text-[10px] font-bold px-3 py-2 rounded uppercase tracking-wider flex items-center space-x-1 cursor-pointer"
-                        style={{ minHeight: '36px' }}
-                      >
-                        <Upload className="w-3.5 h-3.5" />
-                        <span>Tải ảnh Mobile</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const url = prompt('Nhập URL ảnh Mobile:');
-                          if (url) setSettings({ ...settings, hero_image_mobile: url.trim() });
-                        }}
-                        className="border border-gray-200 hover:border-brand-dark text-brand-dark text-[10px] font-bold px-3 py-2 rounded uppercase tracking-wider cursor-pointer"
-                        style={{ minHeight: '36px' }}
-                      >
-                        Dán URL
-                      </button>
-                    </div>
-                    <input
-                      type="file"
-                      ref={fileInputHeroMobileRef}
-                      onChange={handleHeroMobileUpload}
-                      accept="image/*"
-                      className="hidden"
-                    />
-                    {uploadingHeroMobile && <span className="text-[9px] text-brand-red font-bold animate-pulse">Đang tải...</span>}
-                  </div>
-                </div>
-              </div>
+              <ImageUpload
+                value={settings.hero_image_mobile || ''}
+                onChange={(url) => setSettings(prev => ({ ...prev, hero_image_mobile: url }))}
+                folder="settings"
+                label="Ảnh Hero Mobile (Kích thước Điện thoại)"
+              />
             </div>
 
             <hr className="border-gray-150 my-4" />
@@ -606,44 +363,12 @@ export default function AdminSettings() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               {/* Intro Image Upload */}
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-brand-gray uppercase tracking-widest block">Ảnh Giới thiệu cửa hàng</label>
-                <div className="w-full aspect-[4/3] bg-brand-light border border-gray-200 rounded-lg overflow-hidden flex items-center justify-center p-1 relative">
-                  {settings.intro_image ? (
-                    <img src={settings.intro_image} alt="Intro Preview" className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-[9px] text-gray-400">Chưa có ảnh giới thiệu</span>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => fileInputIntroImageRef.current?.click()}
-                    className="flex-grow bg-brand-dark hover:bg-brand-red text-white text-[10px] font-bold px-3 py-2 rounded uppercase tracking-wider flex items-center justify-center space-x-1 cursor-pointer"
-                    style={{ minHeight: '36px' }}
-                  >
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>Tải ảnh</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const url = prompt('Nhập URL ảnh Giới thiệu:');
-                      if (url) setSettings({ ...settings, intro_image: url.trim() });
-                    }}
-                    className="border border-gray-200 hover:border-brand-dark text-brand-dark text-[10px] font-bold px-3 py-2 rounded uppercase tracking-wider cursor-pointer"
-                    style={{ minHeight: '36px' }}
-                  >
-                    Dán URL
-                  </button>
-                </div>
-                <input
-                  type="file"
-                  ref={fileInputIntroImageRef}
-                  onChange={handleIntroImageUpload}
-                  accept="image/*"
-                  className="hidden"
+                <ImageUpload
+                  value={settings.intro_image || ''}
+                  onChange={(url) => setSettings(prev => ({ ...prev, intro_image: url }))}
+                  folder="settings"
+                  label="Ảnh Giới thiệu cửa hàng"
                 />
-                {uploadingIntroImage && <span className="text-[9px] text-brand-red font-bold animate-pulse block text-center">Đang tải...</span>}
               </div>
 
               {/* Intro Text */}
@@ -758,6 +483,14 @@ export default function AdminSettings() {
                 required
               ></textarea>
             </div>
+
+            {/* SEO Default OG Image */}
+            <ImageUpload
+              value={settings.og_image_url || ''}
+              onChange={(url) => setSettings(prev => ({ ...prev, og_image_url: url }))}
+              folder="settings"
+              label="Ảnh đại diện khi chia sẻ link (OG Image)"
+            />
           </div>
         </div>
 

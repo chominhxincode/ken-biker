@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Edit3, Trash2, Save, X, Upload, Layers } from 'lucide-react';
 import db from '@/lib/db';
 import { uploadImage } from '@/lib/db/upload';
 import { Category } from '@/lib/db/types';
+import ImageUpload from '@/components/ImageUpload';
 
 export default function AdminCategories() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -14,10 +15,6 @@ export default function AdminCategories() {
   // Modal control
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Partial<Category> | null>(null);
-
-  // File Upload state
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadCategories = async () => {
     try {
@@ -69,22 +66,6 @@ export default function AdminCategories() {
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploadingImage(true);
-    try {
-      const url = await uploadImage(file, 'categories');
-      setSelectedCategory(prev => prev ? { ...prev, image_url: url } : null);
-    } catch (err) {
-      alert('Lỗi tải ảnh phân loại lên hệ thống.');
-    } finally {
-      setUploadingImage(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  };
-
   const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCategory || !selectedCategory.name?.trim()) return;
@@ -98,8 +79,13 @@ export default function AdminCategories() {
         sort_order: Number(selectedCategory.sort_order || 0)
       } as Omit<Category, 'id'> & { id?: string };
 
+      // Log payload
+      console.log("Saving category payload:", catData);
+
       await db.saveCategory(catData);
-      alert('Lưu phân loại thành công.');
+      
+      // Success alert
+      alert('Đã upload và lưu URL ảnh vào database');
       setIsModalOpen(false);
       loadCategories();
     } catch (err: any) {
@@ -243,52 +229,13 @@ export default function AdminCategories() {
               </div>
 
               {/* Category Image */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-brand-gray uppercase tracking-widest block">Ảnh đại diện phân loại</label>
-                <div className="flex items-center space-x-4">
-                  <div className="w-16 h-16 bg-brand-light border border-gray-200 rounded-lg overflow-hidden flex items-center justify-center p-2 shrink-0">
-                    {selectedCategory.image_url ? (
-                      <img src={selectedCategory.image_url} alt="Category" className="max-w-full max-h-full object-contain" />
-                    ) : (
-                      <Layers className="w-6 h-6 text-gray-400" />
-                    )}
-                  </div>
-                  <div className="flex-grow space-y-1.5">
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="bg-brand-dark hover:bg-brand-red text-white text-[10px] font-bold px-3 py-2 rounded uppercase tracking-wider flex items-center space-x-1 cursor-pointer"
-                        style={{ minHeight: '36px' }}
-                      >
-                        <Upload className="w-3.5 h-3.5" />
-                        <span>Tải tệp</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const url = prompt('Nhập đường dẫn URL ảnh:');
-                          if (url) setSelectedCategory({ ...selectedCategory, image_url: url.trim() });
-                        }}
-                        className="border border-gray-200 hover:border-brand-dark text-brand-dark text-[10px] font-bold px-3 py-2 rounded uppercase tracking-wider cursor-pointer"
-                        style={{ minHeight: '36px' }}
-                      >
-                        Nhập URL
-                      </button>
-                    </div>
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileUpload}
-                      accept="image/*"
-                      className="hidden"
-                    />
-                  </div>
-                </div>
-                {uploadingImage && (
-                  <p className="text-[9px] text-brand-red font-bold animate-pulse">Đang xử lý tải ảnh lên hệ thống...</p>
-                )}
-              </div>
+              <ImageUpload
+                value={selectedCategory.image_url || ''}
+                onChange={(url) => setSelectedCategory(prev => prev ? { ...prev, image_url: url } : null)}
+                folder="categories"
+                label="Ảnh đại diện phân loại"
+                placeholderIcon={<Layers className="w-6 h-6 text-gray-400" />}
+              />
 
               {/* Sort Order */}
               <div className="space-y-1">

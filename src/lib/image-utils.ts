@@ -3,17 +3,17 @@ export type FallbackType = 'vehicle' | 'blog' | 'banner' | 'logo' | 'avatar';
 export function getFallbackUrl(type: FallbackType): string {
   switch (type) {
     case 'vehicle':
-      return '/demo/placeholder-vehicle.svg';
+      return '/demo/placeholder-vehicle.webp';
     case 'blog':
-      return '/demo/placeholder-blog.svg';
+      return '/demo/placeholder-blog.webp';
     case 'banner':
-      return '/demo/placeholder-banner.svg';
+      return '/demo/placeholder-banner.webp';
     case 'logo':
-      return '/demo/placeholder-logo.svg';
+      return '/demo/placeholder-logo.webp';
     case 'avatar':
-      return '/demo/placeholder-logo.svg';
+      return '/demo/placeholder-logo.webp';
     default:
-      return '/demo/placeholder-vehicle.svg';
+      return '/demo/placeholder-vehicle.webp';
   }
 }
 

@@ -360,7 +360,7 @@ export const localStorageClient = {
       is_sold: Boolean(vehicle.is_sold),
       seo_title: vehicle.seo_title || `${vehicle.name} chính hãng | Ken Motor`,
       seo_description: vehicle.seo_description || vehicle.short_desc,
-      og_image: images.find(img => img.is_cover)?.image_url || images[0]?.image_url || '',
+      og_image: vehicle.og_image || images.find(img => img.is_cover)?.image_url || images[0]?.image_url || '',
       is_visible: Boolean(vehicle.is_visible !== false)
     };
 

@@ -5,6 +5,7 @@ import { Plus, Edit3, Trash2, Save, X, Upload, FileText, Globe } from 'lucide-re
 import db from '@/lib/db';
 import { uploadImage } from '@/lib/db/upload';
 import { Post } from '@/lib/db/types';
+import ImageUpload from '@/components/ImageUpload';
 
 export default function AdminBlog() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -17,9 +18,7 @@ export default function AdminBlog() {
   const [tagsInput, setTagsInput] = useState('');
 
   // File Upload State
-  const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingContentImage, setUploadingContentImage] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const contentImageInputRef = useRef<HTMLInputElement>(null);
   const contentTextareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -87,22 +86,6 @@ export default function AdminBlog() {
       alert('Lỗi khi xóa bài viết.');
     } finally {
       setActionLoading(false);
-    }
-  };
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploadingImage(true);
-    try {
-      const url = await uploadImage(file, 'posts');
-      setSelectedPost(prev => prev ? { ...prev, image_url: url } : null);
-    } catch (err) {
-      alert('Lỗi tải ảnh bài viết lên hệ thống.');
-    } finally {
-      setUploadingImage(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -184,8 +167,13 @@ export default function AdminBlog() {
         slug
       } as Omit<Post, 'id'> & { id?: string };
 
+      // Log payload
+      console.log("Saving post payload:", postData);
+
       await db.savePost(postData);
-      alert('Lưu bài viết thành công.');
+      
+      // Success alert
+      alert('Đã upload và lưu URL ảnh vào database');
       setIsModalOpen(false);
       loadPosts();
     } catch (err: any) {
@@ -328,46 +316,12 @@ export default function AdminBlog() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 {/* Image Upload Column */}
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-brand-gray uppercase tracking-widest block">Ảnh đại diện bài viết</label>
-                  <div className="w-full aspect-[16/9] bg-brand-light border border-gray-200 rounded-lg overflow-hidden flex items-center justify-center p-2 relative">
-                    {selectedPost.image_url ? (
-                      <img src={selectedPost.image_url} alt="Post Cover" className="w-full h-full object-cover" />
-                    ) : (
-                      <FileText className="w-8 h-8 text-gray-400" />
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="flex-grow bg-brand-dark hover:bg-brand-red text-white text-[10px] font-bold px-3 py-2 rounded uppercase tracking-wider flex items-center justify-center space-x-1 cursor-pointer"
-                      style={{ minHeight: '36px' }}
-                    >
-                      <Upload className="w-3.5 h-3.5 animate-bounce-slow" />
-                      <span>Tải ảnh</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const url = prompt('Nhập URL ảnh bài viết:');
-                        if (url) setSelectedPost({ ...selectedPost, image_url: url.trim() });
-                      }}
-                      className="border border-gray-200 hover:border-brand-dark text-brand-dark text-[10px] font-bold px-3 py-2 rounded uppercase tracking-wider cursor-pointer"
-                      style={{ minHeight: '36px' }}
-                    >
-                      Dán URL
-                    </button>
-                  </div>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileUpload}
-                    accept="image/*"
-                    className="hidden"
+                  <ImageUpload
+                    value={selectedPost.image_url || ''}
+                    onChange={(url) => setSelectedPost(prev => prev ? { ...prev, image_url: url } : null)}
+                    folder="posts"
+                    label="Ảnh đại diện bài viết"
                   />
-                  {uploadingImage && (
-                    <p className="text-[9px] text-brand-red font-bold animate-pulse">Đang tải ảnh lên...</p>
-                  )}
                 </div>
 
                 {/* Excerpt */}

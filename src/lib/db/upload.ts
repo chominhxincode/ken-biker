@@ -20,9 +20,7 @@ export async function uploadImage(file: File, folder: string = 'vehicles'): Prom
 
     if (error) {
       console.error('Error uploading image to Supabase storage:', error);
-      // Fallback to base64 if Supabase upload fails (e.g. bucket doesn't exist yet)
-      console.warn('Falling back to Base64 encode.');
-      return readAsBase64(file);
+      throw new Error(`Tải ảnh lên Supabase Storage thất bại: ${error.message}`);
     }
 
     const { data } = supabase.storage

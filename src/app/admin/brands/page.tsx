@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Edit3, Trash2, Save, X, Upload, Star } from 'lucide-react';
 import db from '@/lib/db';
 import { uploadImage } from '@/lib/db/upload';
 import { Brand } from '@/lib/db/types';
+import ImageUpload from '@/components/ImageUpload';
 
 export default function AdminBrands() {
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -14,10 +15,6 @@ export default function AdminBrands() {
   // Modal control
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedBrand, setSelectedBrand] = useState<Partial<Brand> | null>(null);
-
-  // File Upload state
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadBrands = async () => {
     try {
@@ -68,21 +65,7 @@ export default function AdminBrands() {
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
 
-    setUploadingImage(true);
-    try {
-      const url = await uploadImage(file, 'brands');
-      setSelectedBrand(prev => prev ? { ...prev, logo_url: url } : null);
-    } catch (err) {
-      alert('Lỗi tải ảnh logo lên hệ thống.');
-    } finally {
-      setUploadingImage(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  };
 
   const handleSaveBrand = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,8 +79,13 @@ export default function AdminBrands() {
         slug
       } as Omit<Brand, 'id'> & { id?: string };
 
+      // Log payload
+      console.log("Saving brand payload:", brandData);
+
       await db.saveBrand(brandData);
-      alert('Lưu hãng xe thành công.');
+      
+      // Success alert
+      alert('Đã upload và lưu URL ảnh vào database');
       setIsModalOpen(false);
       loadBrands();
     } catch (err: any) {
@@ -230,53 +218,12 @@ export default function AdminBrands() {
               </div>
 
               {/* Logo Upload */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-brand-gray uppercase tracking-widest block">Logo thương hiệu</label>
-                <div className="flex items-center space-x-4">
-                  <div className="w-16 h-16 bg-brand-light border border-gray-200 rounded-lg overflow-hidden flex items-center justify-center p-2 shrink-0">
-                    {selectedBrand.logo_url ? (
-                      <img src={selectedBrand.logo_url} alt="Logo" className="max-w-full max-h-full object-contain" />
-                    ) : (
-                      <span className="text-[9px] text-brand-gray uppercase tracking-widest font-bold">Logo</span>
-                    )}
-                  </div>
-                  <div className="flex-grow space-y-1.5">
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="bg-brand-dark hover:bg-brand-red text-white text-[10px] font-bold px-3 py-2 rounded uppercase tracking-wider flex items-center space-x-1 cursor-pointer"
-                        style={{ minHeight: '36px' }}
-                      >
-                        <Upload className="w-3.5 h-3.5" />
-                        <span>Tải tệp</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const url = prompt('Nhập đường dẫn logo URL:');
-                          if (url) setSelectedBrand({ ...selectedBrand, logo_url: url.trim() });
-                        }}
-                        className="border border-gray-200 hover:border-brand-dark text-brand-dark text-[10px] font-bold px-3 py-2 rounded uppercase tracking-wider cursor-pointer"
-                        style={{ minHeight: '36px' }}
-                      >
-                        Nhập URL
-                      </button>
-                    </div>
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileUpload}
-                      accept="image/*"
-                      className="hidden"
-                    />
-                    <p className="text-[9px] text-brand-gray">Ảnh vuông (Ví dụ: 200x200px) có nền trong suốt PNG là tốt nhất.</p>
-                  </div>
-                </div>
-                {uploadingImage && (
-                  <p className="text-[9px] text-brand-red font-bold animate-pulse">Đang xử lý tải ảnh lên hệ thống...</p>
-                )}
-              </div>
+              <ImageUpload
+                value={selectedBrand.logo_url || ''}
+                onChange={(url) => setSelectedBrand(prev => prev ? { ...prev, logo_url: url } : null)}
+                folder="brands"
+                label="Logo thương hiệu"
+              />
 
               {/* SEO Title */}
               <div className="space-y-1">
